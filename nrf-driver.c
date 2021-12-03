@@ -35,6 +35,27 @@ static uint8_t nrf_rx_flush(void) {
     return res;     // status.
 }
 
+uint32_t get_addr(uint8_t reg, unsigned addr_nbytes) {
+    uint64_t addr = 0;
+    nrf_getn(reg, &addr, addr_nbytes);
+    return addr;
+}
+
+void put_addr(uint8_t reg, uint32_t addr, unsigned addr_nbytes) {
+    nrf_putn(NRF_WR_REG | reg, &addr, addr_nbytes);
+}
+
+void put_addr_chk(uint8_t reg, uint32_t addr, unsigned addr_nbytes) {
+    put_addr(reg, addr, addr_nbytes);
+    uint32_t assigned_addr = get_addr(reg, addr_nbytes);
+    if (assigned_addr != addr) {
+        printk("Assigned Addr: %x, Actual Addr: %x. Failing\n", assigned_addr, addr);
+        nrf_dump("Failing Address Dump");
+    }
+    assert(assigned_addr == addr);
+}
+
+
 // put device in RX mode: we always keep it here other than during startup
 // and during the brief moment needed to TX a packet.   we delay until 
 // device settles into a valid state so that any subsequent operation is
@@ -127,14 +148,22 @@ nrf_init(const nrf_config_t c, uint32_t rx_addr, unsigned msg_nbytes, unsigned a
     }
 
     // reg=3 setup address size
+    // address size of 3 -> hard coded down below
     nrf_put8_chk(NRF_SETUP_AW, set_bit(0));
 
     // setup RX_PW_P1 and RX_ADDR_P1
     nrf_pipe_t *p = &nic.pipe;
-    //nrf_put8_chk(NRF_RX_ADDR_P1, 0xc2c2c2c2c2);
+    nrf_debug("setting rx addresses: %x, nbytes=%d\n", rx_addr, msg_nbytes);
+    put_addr_chk(NRF_RX_ADDR_P1, rx_addr, 3);
+    nrf_debug("getting rx address: %x, nbytes=%d\n", nrf_get8(NRF_RX_ADDR_P1), msg_nbytes);
     nrf_put8_chk(NRF_RX_PW_P1, msg_nbytes);
     
     // set message size = 0 for unused pipes.  [i think is redundant]
+    if (acked_p) {
+        nrf_put8_chk(NRF_RX_PW_P0, msg_nbytes);
+    } else {
+        nrf_put8_chk(NRF_RX_PW_P0, 0);
+    }
     nrf_put8_chk(NRF_RX_PW_P2, 0);
     nrf_put8_chk(NRF_RX_PW_P3, 0);
     nrf_put8_chk(NRF_RX_PW_P4, 0);
@@ -275,7 +304,8 @@ int nrf_get_pkts(nrf_t *n) {
 
         // clear RX interrupt: note since it is a binary value, there could be more 
         // packets on the queue so we have to check again.
-        unimplemented();
+        // p.59
+        nrf_put8_chk(NRF_STATUS, nrf_get8(NRF_STATUS) | set_bit(6));
 
         cnt++;
 
@@ -287,21 +317,29 @@ int nrf_get_pkts(nrf_t *n) {
 }
 
 // send the packet: called by nrf_tx_send_noack and nrf_tx_send_ack
-static void do_tx(const nrf_t *n, const void *msg, unsigned nbytes) {
+static void do_tx(nrf_t *n, const void *msg, unsigned nbytes) {
     assert(nrf_get8(NRF_CONFIG) == n->tx_config);
 
     // clock in a payload that has the same length as the receiver.
-    unimplemented();
+    // p.51
+    // This assumes both devices are running from this same code
+    nrf_pipe_t *p = nrf_pipe_get(n,1);
+    assert(p);
+    unsigned payload_bytes = p->msg_nbytes;
 
     // 9. pulse CE to transmit the packet (see timings)
     // p 23: minimum of 10 usec.
-    unimplemented();
-
-    // set CE lo.
-    unimplemented();
-
+    while (nbytes > 0) {
+        nrf_putn(NRF_W_TX_PAYLOAD, msg, payload_bytes);
+        nbytes -= payload_bytes;
+        if (nbytes > 0) msg += payload_bytes;
+        ce_hi(n->c.ce_pin);
+        delay_us(10);
+        ce_lo(n->c.ce_pin);
+    }
     // i don't think we need to settle?
 }
+
 
 // send a packet without ack.
 int nrf_tx_send_noack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbytes) {
@@ -317,7 +355,7 @@ int nrf_tx_send_noack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbyte
     // set the tx address.
     unsigned addr_nbytes = n->c.addr_nbytes;
     nrf_debug("setting tx addresses: %x, nbytes=%d\n", txaddr, addr_nbytes);
-    unimplemented();
+    put_addr_chk(NRF_TX_ADDR, txaddr, addr_nbytes);
 
     nrf_debug("about to do a tx\n");
     do_tx(n,msg,nbytes);
@@ -326,7 +364,11 @@ int nrf_tx_send_noack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbyte
     //  1. wait until tx is empty.
     //  2. clear the tx interrupt.
     //  3. switch back to rx mode.
-    unimplemented();
+    while (!nrf_tx_fifo_empty())
+        ;
+    // clear interupt
+    nrf_put8(NRF_STATUS, set_bit(5));
+    nrf_rx_mode(n);
 
     nrf_debug("tx success\n");
     return nbytes;
@@ -359,10 +401,15 @@ int nrf_tx_send_ack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbytes)
 
     // setup for ack:
     //  1. write address for retran and for tx.
-    unimplemented();
+    unsigned addr_nbytes = n->c.addr_nbytes;
+    nrf_debug("setting tx addresses: %x, nbytes=%d\n", txaddr, addr_nbytes);
+    put_addr_chk(NRF_TX_ADDR, txaddr, addr_nbytes);
+    // p. 60
+    put_addr_chk(NRF_RX_ADDR_P0, txaddr, addr_nbytes);
 
+    nrf_debug("about to do a tx\n");
     do_tx(n,msg,nbytes);
-    
+
     // we need to spin until we have a tx success or we get an 
     // error in terms of the number of retran attempts.
     // on error: p48: need to to a tx_flush() to get the failed
@@ -385,11 +432,13 @@ int nrf_tx_send_ack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbytes)
             assert(nrf_tx_fifo_empty());
 
             // clear the tx interrupt.
-            unimplemented();
+            nrf_put8(NRF_STATUS, set_bit(5));
             // done.
         // test this by setting retran to 1.
         } else if(nrf_has_max_rt_intr()) {
             // have to flush and clear the rt interrupt.
+            nrf_put8(NRF_STATUS, set_bit(5));
+            nrf_rx_mode(n);
             panic("max intr\n");
             printk("max rt intr!\n");
         }
