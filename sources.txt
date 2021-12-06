@@ -1,1 +1,4 @@
 Used This To Get Button Wired: https://learn.adafruit.com/adafruit-arduino-lesson-6-digital-inputs?view=all
+Git Ignore: https://www.atlassian.com/git/tutorials/saving-changes/gitignore
+
+I used lab 14 from cs140e spring of 2021 as a starting point for all of my work.
