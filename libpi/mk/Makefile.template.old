@@ -1,0 +1,124 @@
+######################################################################
+# you should not have to modify below.
+#
+#
+
+# export all of the makefile variables.
+export TTYUSB 
+export BOOTLOADER
+export GREP_STR 
+
+
+MAKEFLAGS += --no-print-directory
+TEST_PROGS := $(patsubst %.c, %.bin, $(TEST_SRC))
+
+# if CHECK is defined, do that, otherwise if RUN is defined do that.
+ifeq ($(CHECK),1)
+CHECK_RUN := check
+else ifeq ($(RUN),1)
+TEST_RUN   := $(patsubst %.c, %.run, $(TEST_SRC))
+endif
+TEST_OBJS   := $(patsubst %.c, %.o, $(TEST_SRC))
+
+# enable "make emit"
+ifdef STAFF
+ENABLE_EMIT :=1
+endif
+
+dep := $(patsubst %.c, %.d, $(TEST_SRC)) $(SUPPORT_OBJS:.o=.d) 
+VPATH := $(sort $(dir $(SRC)))
+
+.SUFFIXES: .run
+
+
+# ugh: includes defines it
+include $(CS140E_2021_PATH)/libpi/includes.mk
+CFLAGS += -Wno-unused-function -Wno-unused-variable  $(EXTRA_CFLAGS)
+
+ifndef MK_CHK
+    MK_CHK := $(LPP)/mk/Makefile.check
+endif
+
+# put lib first so we take symbols from there.
+# had a very weird error where a foo.o was appearing in libpi.  wth.
+LIBS = $(LIB) $(LPI) 
+
+# add the memmap file, libpi and the makefile as dependencies
+# libpi serves as a sentinal covering everything in libpi
+DEPS = $(MEMMAP) ./Makefile $(LPI) $(LPP)/mk/Makefile.template
+
+ALL_OBJS := $(SUPPORT_OBJS) $(STAFF_OBJS) 
+
+all:: libs $(LIB) $(TEST_PROGS) $(TEST_RUN) $(CHECK_RUN) 
+
+# double colon is so user can add transparently.
+libs::
+	@make -s -C $(LPP)
+$(LPP):
+	@make -s -C $(LPP)
+
+$(SUPPORT_OBJS): $(DEPS)
+
+%.o: %.c $(DEPS)
+	$(CC) $(CFLAGS) -c $< -o $@
+%.o: %.S $(DEPS)
+	$(CC) -c $(CPP_ASFLAGS) $< -o $@
+
+%.elf: %.o $(ALL_OBJS) $(DEPS) $(START) $(LIB)
+	$(LD) $(START)  $< $(ALL_OBJS) -T $(MEMMAP) -o $@  $(LIBS)
+
+
+
+ifneq ($(MAKECMDGOALS),clean)
+ifneq ($(MAKECMDGOALS),cleanall)
+-include $(dep)  # include dep files
+endif
+endif
+
+./%.d: %.c $(DEPS)
+	$(CC) $(CFLAGS) $< -MM -MT $(@:.d=.o) >$@
+%.list: %.elf
+	$(OD) -D   $*.elf > $*.list
+%.bin: %.list
+	$(OCP) $*.elf -O binary $*.bin
+%.run: %.bin
+	$(BOOTLOADER) $(TTYUSB) ./$<
+
+
+libpiextra.a: $(LIB_OBJS)
+	$(AR) crf $@ $(LIB_OBJS)
+	$(OD) -D $@ > $@.list
+
+#ifdef LIB
+#$(LIB): $(LIB_OBJS)  $(DEPS)
+	#$(AR) crf $@ $(LIB_OBJS)
+	#$(OD) -D $@ > $@.list
+#endif
+
+ifdef ENABLE_EMIT
+emit: libs $(DEPS) $(TEST_PROGS)
+	@make -e -f $(MK_CHK) emit "TESTS=$(TEST_PROGS)"
+else
+emit: 
+	$( error "do not run emit!" )
+endif
+
+run: libs $(DEPS) $(TEST_PROGS)
+	@make -f $(MK_CHK) run "TESTS=$(TEST_PROGS)"
+check: libs $(DEPS) $(TEST_PROGS)
+	@make -f $(MK_CHK) check "TESTS=$(TEST_PROGS)"
+
+update:
+	cp *.out ../code
+
+tags: 
+	ctags *.[chSs] $(LPP)/*.[Ssch] $(LPP)/*/*.[chSs]
+
+# note: double :: is so user can add transparently
+clean::
+	rm -rf $(NAME) *~ tags $(SUPPORT_OBJS) *.bin *.elf *.list *.img Makefile.bak  *.d  $(TEST_OBJS) $(LIB) $(LIB_OBJS)
+
+.PHONY: libs all tags clean run update
+
+# stop make from deleting these suffix'd files.
+.PRECIOUS: %.list %.elf %.o %.d
