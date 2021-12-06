@@ -70,7 +70,7 @@ static void nrf_rx_mode(nrf_t *n) {
     ce_lo(n->c.ce_pin);
     nrf_put8_chk(NRF_CONFIG, rx_config);
     ce_hi(n->c.ce_pin);
-    delay_us(100);
+    delay_us(130);
     assert(nrf_is_rx());
 }
 
@@ -128,7 +128,7 @@ nrf_init(const nrf_config_t c, uint32_t rx_addr, unsigned msg_nbytes, unsigned a
         // reg=1: p57
         // XXX: seems like both retran pipe and pipe0 have to be ENAA_P0 = 1 (p75)
         // BUG from before: didn't enable for PO.
-        nrf_put8_chk(NRF_EN_AA, 0b111111);
+        nrf_put8_chk(NRF_EN_AA, 0b11);
 
         // reg=2: p 57, enable pipes --- always enable pipe 0 for retran.
         nrf_put8_chk(NRF_EN_RXADDR, set_bit(0) | set_bit(1));
@@ -138,7 +138,7 @@ nrf_init(const nrf_config_t c, uint32_t rx_addr, unsigned msg_nbytes, unsigned a
         assert(bits_get(rt_d,4,7) == 0);
 
         // reg = 4: setup retran
-        nrf_put8_chk(NRF_SETUP_RETR, set_bit(1) | set_bit(0));
+        nrf_put8_chk(NRF_SETUP_RETR, 0b11111);
 
         // double check
         assert(nrf_pipe_is_enabled(0));
@@ -155,15 +155,15 @@ nrf_init(const nrf_config_t c, uint32_t rx_addr, unsigned msg_nbytes, unsigned a
     nrf_pipe_t *p = &nic.pipe;
     nrf_debug("setting rx addresses: %x, nbytes=%d\n", rx_addr, msg_nbytes);
     put_addr_chk(NRF_RX_ADDR_P1, rx_addr, 3);
-    nrf_debug("getting rx address: %x, nbytes=%d\n", nrf_get8(NRF_RX_ADDR_P1), msg_nbytes);
+    nrf_debug("getting rx address: %x, nbytes=%d\n", get_addr(NRF_RX_ADDR_P1, 3), msg_nbytes);
     nrf_put8_chk(NRF_RX_PW_P1, msg_nbytes);
     
     // set message size = 0 for unused pipes.  [i think is redundant]
-    if (acked_p) {
-        nrf_put8_chk(NRF_RX_PW_P0, msg_nbytes);
-    } else {
+  //  if (acked_p) {
+    //    nrf_put8_chk(NRF_RX_PW_P0, msg_nbytes);
+    //} else {
         nrf_put8_chk(NRF_RX_PW_P0, 0);
-    }
+    //}
     nrf_put8_chk(NRF_RX_PW_P2, 0);
     nrf_put8_chk(NRF_RX_PW_P3, 0);
     nrf_put8_chk(NRF_RX_PW_P4, 0);
@@ -259,6 +259,7 @@ int nrf_get_pkts(nrf_t *n) {
     //
 
     // always should be in rx config, aways should have ce_pin high.
+    ce_hi(n->c.ce_pin);
     assert(nrf_get8(NRF_CONFIG) == n->rx_config);
 
     // *ERROR* if you are not in receive mode, you cannot check the rx_has_packet
@@ -293,7 +294,8 @@ int nrf_get_pkts(nrf_t *n) {
 
         // getn returns status: extract the pipeid from it and 
         // make sure they match.
-        unimplemented();
+        uint8_t status = nrf_getn(NRF_R_RX_PAYLOAD, &msg, nbytes);
+        assert(pipeid_get(status) == pipen);
 
         // push the message on the circular queue.
         if(!cq_push_n(&p->recvq, msg, nbytes))
@@ -305,7 +307,7 @@ int nrf_get_pkts(nrf_t *n) {
         // clear RX interrupt: note since it is a binary value, there could be more 
         // packets on the queue so we have to check again.
         // p.59
-        nrf_put8_chk(NRF_STATUS, nrf_get8(NRF_STATUS) | set_bit(6));
+        nrf_rx_intr_clr();
 
         cnt++;
 
@@ -423,21 +425,23 @@ int nrf_tx_send_ack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbytes)
     // rx mode to get ack packets).  the longer you are here the more
     // stuff you lose.   
     while(1) {
-
         // success: have a tx interrupt.
         // 
         // success!
         if(nrf_has_tx_intr()) {
             output("success\n");
             assert(nrf_tx_fifo_empty());
-
             // clear the tx interrupt.
-            nrf_put8(NRF_STATUS, set_bit(5));
+            nrf_tx_intr_clr();
+            break;
             // done.
         // test this by setting retran to 1.
         } else if(nrf_has_max_rt_intr()) {
             // have to flush and clear the rt interrupt.
-            nrf_put8(NRF_STATUS, set_bit(5));
+            nrf_dump("Max Interrupt");
+            nrf_tx_flush();
+            nrf_tx_intr_clr();
+            nrf_rt_intr_clr();
             nrf_rx_mode(n);
             panic("max intr\n");
             printk("max rt intr!\n");
@@ -449,6 +453,7 @@ int nrf_tx_send_ack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbytes)
     }
 
     nrf_rx_mode(n);
+    //nrf_dump("back in rx");
     return nbytes;
 }
 
