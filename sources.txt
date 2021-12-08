@@ -5,3 +5,5 @@ Git Ignore Removing: https://stackoverflow.com/questions/1274057/how-can-i-make-
 Data Types: https://doc.embedded-wizard.de/uint-type?v=8.10
 
 I used lab 14 from cs140e spring of 2021 as a starting point for all of my work.
+
+I used the Broadcom Document to get pullup/down functionality working in my GPIO code.

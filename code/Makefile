@@ -17,7 +17,7 @@ TEST_SRC := $(wildcard ./tests/[12]-*.c)
 TEST_SRC := client.c server.c
 
 # a list of all of your object files.
-SRC :=  nrf-util.c nrf-driver.c nrf-public.c ads1115_joystick.c i2c.o button.c package_data.c unpack.c
+SRC :=  nrf-util.c nrf-driver.c nrf-public.c ads1115_joystick.c i2c.o button.c package_data.c unpack.c neopixel.c lightstrip.c
 # staff-nrf-driver.c
 SUPPORT_OBJS := $(SRC:.c=.o) 
 
