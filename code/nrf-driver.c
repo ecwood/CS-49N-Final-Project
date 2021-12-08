@@ -158,12 +158,7 @@ nrf_init(const nrf_config_t c, uint32_t rx_addr, unsigned msg_nbytes, unsigned a
     nrf_debug("getting rx address: %x, nbytes=%d\n", get_addr(NRF_RX_ADDR_P1, 3), msg_nbytes);
     nrf_put8_chk(NRF_RX_PW_P1, msg_nbytes);
     
-    // set message size = 0 for unused pipes.  [i think is redundant]
-  //  if (acked_p) {
-    //    nrf_put8_chk(NRF_RX_PW_P0, msg_nbytes);
-    //} else {
-        nrf_put8_chk(NRF_RX_PW_P0, 0);
-    //}
+    nrf_put8_chk(NRF_RX_PW_P0, 0);
     nrf_put8_chk(NRF_RX_PW_P2, 0);
     nrf_put8_chk(NRF_RX_PW_P3, 0);
     nrf_put8_chk(NRF_RX_PW_P4, 0);
@@ -287,7 +282,7 @@ int nrf_get_pkts(nrf_t *n) {
         nrf_pipe_t *p = nrf_pipe_get(n,pipen);
         assert(p);
         unsigned nbytes = p->msg_nbytes;
-        nrf_debug("received message on pipe: %d\n", pipen);
+        nrf_debug("received message on pipe: %d with nbytes: %d\n", pipen, nbytes);
 
 #       define NRF_MAX_PKT 32
         uint8_t msg[NRF_MAX_PKT];

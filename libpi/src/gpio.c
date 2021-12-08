@@ -18,6 +18,7 @@ static volatile unsigned *gpio_fsel0 = (void*)(GPIO_BASE + 0x00);
 static volatile unsigned *gpio_set0  = (void*)(GPIO_BASE + 0x1C);
 static volatile unsigned *gpio_clr0  = (void*)(GPIO_BASE + 0x28);
 static volatile unsigned *gpio_lev0 = (void*)(GPIO_BASE + 0x34);
+static volatile unsigned *gpio_gppud = (void*)(GPIO_BASE + 0x94);
 
 //
 // Part 1 implement gpio_set_on, gpio_set_off, gpio_set_output
@@ -100,5 +101,17 @@ void gpio_set_function(unsigned pin, gpio_func_t function) {
         int fsel_register = pin / 10;
         unsigned int fsel_clear = get32(gpio_fsel0 + fsel_register) & ~(0b111<<(3 * (pin % 10)));
         put32(gpio_fsel0 + fsel_register, (fsel_clear | (function << (3 * (pin % 10)))));
+    }
+}
+
+void gpio_set_pullup(unsigned pin) {
+    if (pin < 32 && pin >= 0) {
+        put32(gpio_gppud, 0b10);
+    }
+}
+
+void gpio_set_pulldown(unsigned pin) {
+    if (pin < 32 && pin >= 0) {
+        put32(gpio_gppud, 0b01);
     }
 }

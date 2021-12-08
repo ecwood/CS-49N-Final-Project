@@ -2,6 +2,7 @@
 #include "button.h"
 
 void button_initialize(unsigned pin) {
+	gpio_set_pullup(pin);
 	gpio_set_input(pin);
 }
 

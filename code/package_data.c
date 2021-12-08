@@ -16,7 +16,6 @@ uint8_t format_color(unsigned original_color, unsigned button_val) {
 }
 
 uint32_t package(Color* color, unsigned r_button, unsigned g_button, unsigned b_button, unsigned on_off_button, uint8_t joystick) {
-	printk("Button Vals: r=%d, g=%d, b=%d, o=%d\n", r_button, g_button, b_button, on_off_button);
 	uint8_t red = format_color(color->red, r_button);
 	uint8_t green = format_color(color->green, g_button);
 	uint8_t blue = format_color(color->blue, b_button);
@@ -24,5 +23,6 @@ uint32_t package(Color* color, unsigned r_button, unsigned g_button, unsigned b_
 	color->red = red;
 	color->blue = blue;
 	color->green = green;
-	return joystick_on_off << 23 | red << 15 | green << 7 | blue;
+	uint32_t pack = joystick_on_off << 23 | red << 15 | green << 7 | blue;
+	return pack;
 }
