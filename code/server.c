@@ -33,7 +33,7 @@ void notmain(void) {
         uint8_t joy = ((get_joystick_sample(dev_addr) + 100) / 2);
         unsigned on_off_val = get_button_val(on_off_pin);
         uint32_t send = package(&col, get_button_val(red_pin), get_button_val(green_pin), get_button_val(blue_pin), on_off_val, joy);
-        printk("server: sent joy=%d, red=%d, green=%d, blue=%d\n", joy, col.red, col.green, col.blue);
+        //printk("server: sent joy=%d, red=%d, green=%d, blue=%d\n", joy, col.red, col.green, col.blue);
         if(nrf_send_ack(client_addr, &send, 4) != 4)
             panic("send failed\n");
         if (on_off_val) break;

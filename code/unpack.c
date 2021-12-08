@@ -6,7 +6,7 @@ uint8_t bit_mask() {
 
 unsigned unpack(Color* col, unsigned *joy, uint32_t data) {
 	unsigned joy_val = (data >> 23) & ~(1 << 7);
-	unsigned button_val = data >> 31;
+	unsigned button_val = data >> 30;
 	unsigned red = data >> 15 & bit_mask();
 	unsigned green = (data >> 7) & bit_mask();
 	unsigned blue = data & bit_mask();

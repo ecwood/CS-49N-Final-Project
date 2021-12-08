@@ -28,7 +28,7 @@ void notmain(void) {
             panic("impossible\n");
         unsigned button_val = unpack(&col, &joy, x);
         light_up(light_strip, &col, joy, npixels);
-        printk("client: received joy=%d, red=%d, green=%d, blue=%d\n", joy, col.red, col.green, col.blue);
+        //printk("client: received joy=%d, red=%d, green=%d, blue=%d\n", joy, col.red, col.green, col.blue);
         if (button_val) break;
     }
     set_pixels_off(light_strip, npixels);

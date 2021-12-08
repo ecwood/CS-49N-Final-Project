@@ -76,7 +76,7 @@ static void nrf_rx_mode(nrf_t *n) {
 
 // set nrf into tx mode.
 static void nrf_tx_mode(nrf_t *n) {
-    nrf_debug("setting to tx\n");
+    //nrf_debug("setting to tx\n");
 
     // p22: from figure 4, there is no edge directly from <RX> to <TX>.
     // thus, we first go to <Standby-I> (by setting CE=0) *then* to <TX>.
@@ -282,7 +282,7 @@ int nrf_get_pkts(nrf_t *n) {
         nrf_pipe_t *p = nrf_pipe_get(n,pipen);
         assert(p);
         unsigned nbytes = p->msg_nbytes;
-        nrf_debug("received message on pipe: %d with nbytes: %d\n", pipen, nbytes);
+        //nrf_debug("received message on pipe: %d with nbytes: %d\n", pipen, nbytes);
 
 #       define NRF_MAX_PKT 32
         uint8_t msg[NRF_MAX_PKT];
@@ -351,10 +351,10 @@ int nrf_tx_send_noack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbyte
 
     // set the tx address.
     unsigned addr_nbytes = n->c.addr_nbytes;
-    nrf_debug("setting tx addresses: %x, nbytes=%d\n", txaddr, addr_nbytes);
+    //nrf_debug("setting tx addresses: %x, nbytes=%d\n", txaddr, addr_nbytes);
     put_addr_chk(NRF_TX_ADDR, txaddr, addr_nbytes);
 
-    nrf_debug("about to do a tx\n");
+    //nrf_debug("about to do a tx\n");
     do_tx(n,msg,nbytes);
 
     // wait for send to succeed:
@@ -367,7 +367,7 @@ int nrf_tx_send_noack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbyte
     nrf_put8(NRF_STATUS, set_bit(5));
     nrf_rx_mode(n);
 
-    nrf_debug("tx success\n");
+    //nrf_debug("tx success\n");
     return nbytes;
 }
 
@@ -399,12 +399,12 @@ int nrf_tx_send_ack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbytes)
     // setup for ack:
     //  1. write address for retran and for tx.
     unsigned addr_nbytes = n->c.addr_nbytes;
-    nrf_debug("setting tx addresses: %x, nbytes=%d\n", txaddr, addr_nbytes);
+    //nrf_debug("setting tx addresses: %x, nbytes=%d\n", txaddr, addr_nbytes);
     put_addr_chk(NRF_TX_ADDR, txaddr, addr_nbytes);
     // p. 60
     put_addr_chk(NRF_RX_ADDR_P0, txaddr, addr_nbytes);
 
-    nrf_debug("about to do a tx\n");
+    //nrf_debug("about to do a tx\n");
     do_tx(n,msg,nbytes);
 
     // we need to spin until we have a tx success or we get an 
@@ -424,7 +424,7 @@ int nrf_tx_send_ack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbytes)
         // 
         // success!
         if(nrf_has_tx_intr()) {
-            output("success\n");
+            //output("success\n");
             assert(nrf_tx_fifo_empty());
             // clear the tx interrupt.
             nrf_tx_intr_clr();

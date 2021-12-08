@@ -2,7 +2,7 @@
 #include "color.h"
 #include "package_data.h"
 
-const int COLOR_INCREMENT = 10;
+const int COLOR_INCREMENT = 40;
 const int COLOR_MAX = 255;
 const int COLOR_MIN = 0;
 
