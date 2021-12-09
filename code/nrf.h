@@ -68,7 +68,7 @@ void nrf_gpio_init(unsigned ce);
 
 
 // send to an acknowledging pipe
-uint16_t nrf_send_ack(uint32_t txaddr, void *msg, unsigned nbytes, unsigned red_pin, unsigned green_pin, unsigned blue_pin, unsigned on_off_pin);
+unsigned nrf_send_ack(uint32_t txaddr, void *msg, unsigned nbytes);
 // send to a non-acknowledging pipe
 int nrf_send_noack(uint32_t txaddr, void *msg, unsigned nbytes);
 

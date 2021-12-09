@@ -141,8 +141,8 @@ uint8_t ads1115_config(void) {
     return dev_addr;
 }
 
-int get_joystick_val(uint8_t dev_addr, uint8_t reg) {
-    int v = ads1115_read16(dev_addr, reg);
+int get_joystick_val(uint8_t dev_addr) {
+    int v = ads1115_read16(dev_addr, conversion_reg);
     unsigned max = 26318;
     unsigned min = 0;
     unsigned middle = (max + min) / 2;
@@ -156,7 +156,7 @@ int get_joystick_sample(uint8_t dev_addr) {
     unsigned time = timer_get_usec();
     int loop = 0;
     while (timer_get_usec() - time < 1000 * 1000) {
-        int v = get_joystick_val(dev_addr, conversion_reg);
+        int v = get_joystick_val(dev_addr);
         if (loop == 0) {
             average = v;
         } else {

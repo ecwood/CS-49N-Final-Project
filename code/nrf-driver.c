@@ -400,7 +400,7 @@ int check_interrupt(nrf_t *n) {
 
 
 // send an acknowledged packet
-uint16_t nrf_tx_send_ack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbytes, unsigned r_pin, unsigned g_pin, unsigned b_pin, unsigned o_pin) {
+unsigned nrf_tx_send_ack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbytes) {
     assert(nrf_get8(NRF_CONFIG) == n->rx_config);
 
     // drain the rx if it's not empty so that we can receive acks.
@@ -447,23 +447,12 @@ uint16_t nrf_tx_send_ack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nb
     // receive any messages.  (tho the datasheet does say it switches to 
     // rx mode to get ack packets).  the longer you are here the more
     // stuff you lose.
-    unsigned r_but = 0;
-    unsigned g_but = 0;
-    unsigned b_but = 0;
-    unsigned o_but = 0;
-    unsigned pin_sum = r_pin + g_pin + b_pin + o_pin;
     while(1) {
-        if (pin_sum != 0) {
-            r_but = r_but | get_button_val(r_pin);
-            g_but = g_but | get_button_val(g_pin);
-            b_but = b_but | get_button_val(b_pin);
-            o_but = o_but | get_button_val(o_pin);
-        }
         if (check_interrupt(n)) break;
     }
 
     nrf_rx_mode(n);
     //nrf_dump("back in rx");
-    return package_buttons(r_but, g_but, b_but, o_but);
+    return nbytes;
 }
 
