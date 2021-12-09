@@ -353,10 +353,8 @@ int nrf_tx_send_noack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbyte
 
     // set the tx address.
     unsigned addr_nbytes = n->c.addr_nbytes;
-    //nrf_debug("setting tx addresses: %x, nbytes=%d\n", txaddr, addr_nbytes);
     put_addr_chk(NRF_TX_ADDR, txaddr, addr_nbytes);
 
-    //nrf_debug("about to do a tx\n");
     do_tx(n,msg,nbytes);
 
     // wait for send to succeed:
@@ -369,13 +367,11 @@ int nrf_tx_send_noack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbyte
     nrf_put8(NRF_STATUS, set_bit(5));
     nrf_rx_mode(n);
 
-    //nrf_debug("tx success\n");
     return nbytes;
 }
 
 int check_interrupt(nrf_t *n) {
     if(nrf_has_tx_intr()) {
-        //output("success\n");
         assert(nrf_tx_fifo_empty());
         // clear the tx interrupt.
         nrf_tx_intr_clr();
@@ -427,12 +423,10 @@ unsigned nrf_tx_send_ack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nb
     // setup for ack:
     //  1. write address for retran and for tx.
     unsigned addr_nbytes = n->c.addr_nbytes;
-    //nrf_debug("setting tx addresses: %x, nbytes=%d\n", txaddr, addr_nbytes);
     put_addr_chk(NRF_TX_ADDR, txaddr, addr_nbytes);
     // p. 60
     put_addr_chk(NRF_RX_ADDR_P0, txaddr, addr_nbytes);
 
-    //nrf_debug("about to do a tx\n");
     do_tx(n,msg,nbytes);
 
     // we need to spin until we have a tx success or we get an 
@@ -448,11 +442,11 @@ unsigned nrf_tx_send_ack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nb
     // rx mode to get ack packets).  the longer you are here the more
     // stuff you lose.
     while(1) {
+        // If we get an interrupt break
         if (check_interrupt(n)) break;
     }
 
     nrf_rx_mode(n);
-    //nrf_dump("back in rx");
     return nbytes;
 }
 

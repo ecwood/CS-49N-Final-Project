@@ -12,6 +12,7 @@ neo_t initialize_light_strip(int pin, int npixels) {
 }
 
 void set_pixels_off(neo_t h, int npixels) {
+	// Set all pixels to 0
 	for (int pixel = 0; pixel < npixels; pixel++) {
 		neopix_write(h, pixel, 0, 0, 0);
 	}
@@ -19,8 +20,11 @@ void set_pixels_off(neo_t h, int npixels) {
 }
 
 void light_up(neo_t h, Color* col, int percent, int npixels) {
+	// Calculate the number of pixels that should be on
 	int pixels = (npixels * percent) / 100;
-	for (int pixel = 0; pixel < pixels; pixel++) {
+
+	// Set those pixels to the color value stored in the Color struct
+	for (int pixel = 0; pixel < percent; pixel++) {
 		neopix_write(h, pixel, col->red, col->green, col->blue);
 	}
 	neopix_flush(h);

@@ -141,29 +141,17 @@ uint8_t ads1115_config(void) {
     return dev_addr;
 }
 
-int get_joystick_val(uint8_t dev_addr) {
-    int v = ads1115_read16(dev_addr, conversion_reg);
+int get_joystick_val(uint8_t dev_addr, unsigned npixels) {
+    // Read the ADC to get the joystick raw value
+    int val = ads1115_read16(dev_addr, conversion_reg);
+
+    // These are the minimum and maximum values for the raw joystick
     unsigned max = 26318;
     unsigned min = 0;
     unsigned middle = (max + min) / 2;
-    unsigned div_factor = 131; // Have to make this constant but it's middle / 100;
-    int val = v - middle;
-    return val / 131;
-}
 
-int get_joystick_sample(uint8_t dev_addr) {
-    int average = 0;
-    unsigned time = timer_get_usec();
-    int loop = 0;
-    while (timer_get_usec() - time < 1000 * 1000) {
-        int v = get_joystick_val(dev_addr);
-        if (loop == 0) {
-            average = v;
-        } else {
-            average = (average + v) / 2;
-        }
-        loop++;
-    }
-    return average;
-
+    // The conversion to -100 to 100 factor
+    unsigned div_factor = 263; // Have to make this constant but it's max / 100;
+    val = (npixels * val / 263) / 100;
+    return val;
 }

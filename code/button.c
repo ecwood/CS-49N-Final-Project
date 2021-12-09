@@ -7,5 +7,6 @@ void button_initialize(unsigned pin) {
 }
 
 unsigned get_button_val(unsigned pin) {
+	// Invert the raw button value
 	return ~(gpio_read(pin)) & 1;
 }
