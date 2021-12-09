@@ -68,7 +68,7 @@ void nrf_gpio_init(unsigned ce);
 
 
 // send to an acknowledging pipe
-int nrf_send_ack(uint32_t txaddr, void *msg, unsigned nbytes);
+uint16_t nrf_send_ack(uint32_t txaddr, void *msg, unsigned nbytes, unsigned red_pin, unsigned green_pin, unsigned blue_pin, unsigned on_off_pin);
 // send to a non-acknowledging pipe
 int nrf_send_noack(uint32_t txaddr, void *msg, unsigned nbytes);
 
@@ -79,6 +79,7 @@ int nrf_get_data_exact_timeout(uint32_t rxaddr, void *msg, unsigned nbytes,
 
 // get exactly <nbytes> of data.
 int nrf_get_data_exact(uint32_t rxaddr, void *msg, unsigned nbytes);
+int nrf_get_data_exact_noblk(uint32_t rxaddr, void *msg, unsigned nbytes);
 
 void nrf_dump_raw(const char *msg);
 

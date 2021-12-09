@@ -19,7 +19,6 @@ void notmain(void) {
             panic("impossible\n");
 
         printk("client: received %d (expected=%d)\n", x,i);
-        delay_ms(DELAY_MS);
 
         printk("client: sending %d\n", i);
 

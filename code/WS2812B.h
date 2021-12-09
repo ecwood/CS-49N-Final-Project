@@ -74,11 +74,11 @@
     // can flip between.
     enum { 
         // to send a 1: set pin high for T1H ns, then low for T0H ns.
-        T1H = ns_to_cycles(900),        // Width of a 1 bit in ns
-        T0H = ns_to_cycles(350),        // Width of a 0 bit in ns
+        T1H = ns_to_cycles(750),        // Width of a 1 bit in ns
+        T0H = ns_to_cycles(200),        // Width of a 0 bit in ns
         // to send a 0: set pin high for T1L ns, then low for T0L ns.
-        T1L = ns_to_cycles(350),        // Width of a 1 bit in ns
-        T0L = ns_to_cycles(900),        // Width of a 0 bit in ns
+        T1L = ns_to_cycles(200),        // Width of a 1 bit in ns
+        T0L = ns_to_cycles(750),        // Width of a 0 bit in ns
 
         // to make the LED switch to the new values, old the pin low for FLUSH ns
         FLUSH = ns_to_cycles(50 *1000)    // how long to hold low to flush

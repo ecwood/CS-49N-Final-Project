@@ -89,13 +89,14 @@ int nrf_get_data_exact(uint32_t rxaddr, void *msg, unsigned nbytes) {
             debug("addr=%x: connection error: no traffic after %d seconds\n",
                     rxaddr,  NRF_TIMEOUT);
             nrf_dump("timeout config\n");
+            return 0;
         }
         assert(n< nbytes);
     }
 }
 
-int nrf_send_ack(uint32_t txaddr, void *msg, unsigned nbytes) {
-    return nrf_tx_send_ack(&nic, txaddr, msg, nbytes);
+uint16_t nrf_send_ack(uint32_t txaddr, void *msg, unsigned nbytes, unsigned red_pin, unsigned green_pin, unsigned blue_pin, unsigned on_off_pin) {
+    return nrf_tx_send_ack(&nic, txaddr, msg, nbytes, red_pin, green_pin, blue_pin, on_off_pin);
 }
 
 int nrf_send_noack(uint32_t txaddr, void *msg, unsigned nbytes) {

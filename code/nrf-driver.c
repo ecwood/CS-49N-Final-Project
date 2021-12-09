@@ -1,4 +1,6 @@
 #include "nrf-internal.h"
+#include "package_data.h"
+#include "button.h"
 
 // these are our configurations for tx and rx --- setup so you
 // can just write them out when you switch.
@@ -138,7 +140,7 @@ nrf_init(const nrf_config_t c, uint32_t rx_addr, unsigned msg_nbytes, unsigned a
         assert(bits_get(rt_d,4,7) == 0);
 
         // reg = 4: setup retran
-        nrf_put8_chk(NRF_SETUP_RETR, 0b11111);
+        nrf_put8_chk(NRF_SETUP_RETR, 0b10011);
 
         // double check
         assert(nrf_pipe_is_enabled(0));
@@ -165,7 +167,7 @@ nrf_init(const nrf_config_t c, uint32_t rx_addr, unsigned msg_nbytes, unsigned a
     nrf_put8_chk(NRF_RX_PW_P5, 0);
 
     // reg=5: RF_CH: setup channel --- this is for all addresses.
-    nrf_put8_chk(NRF_RF_CH, 0b111101);
+    nrf_put8_chk(NRF_RF_CH, 0b1011111);
 
     // reg=6: RF_SETUP: setup data rate and power
     // datarate already has the right encoding.
@@ -371,8 +373,34 @@ int nrf_tx_send_noack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbyte
     return nbytes;
 }
 
+int check_interrupt(nrf_t *n) {
+    if(nrf_has_tx_intr()) {
+        //output("success\n");
+        assert(nrf_tx_fifo_empty());
+        // clear the tx interrupt.
+        nrf_tx_intr_clr();
+        return 1;
+        // done.
+    // test this by setting retran to 1.
+    } else if(nrf_has_max_rt_intr()) {
+        // have to flush and clear the rt interrupt.
+        nrf_tx_flush();
+        nrf_tx_intr_clr();
+        nrf_rt_intr_clr();
+        nrf_rx_mode(n);
+        printk("max rt intr!\n");
+        return 1;
+    }
+    // XXX: if we transition to RX, do we lose all the TX setup?
+    if(nrf_rx_fifo_full())
+        panic("rx fifo is full!\n");
+    return 0;
+}
+
+
+
 // send an acknowledged packet
-int nrf_tx_send_ack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbytes) {
+uint16_t nrf_tx_send_ack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbytes, unsigned r_pin, unsigned g_pin, unsigned b_pin, unsigned o_pin) {
     assert(nrf_get8(NRF_CONFIG) == n->rx_config);
 
     // drain the rx if it's not empty so that we can receive acks.
@@ -418,37 +446,24 @@ int nrf_tx_send_ack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbytes)
     // XXX: big problem: the whole time we are sending we won't be able to
     // receive any messages.  (tho the datasheet does say it switches to 
     // rx mode to get ack packets).  the longer you are here the more
-    // stuff you lose.   
+    // stuff you lose.
+    unsigned r_but = 0;
+    unsigned g_but = 0;
+    unsigned b_but = 0;
+    unsigned o_but = 0;
+    unsigned pin_sum = r_pin + g_pin + b_pin + o_pin;
     while(1) {
-        // success: have a tx interrupt.
-        // 
-        // success!
-        if(nrf_has_tx_intr()) {
-            //output("success\n");
-            assert(nrf_tx_fifo_empty());
-            // clear the tx interrupt.
-            nrf_tx_intr_clr();
-            break;
-            // done.
-        // test this by setting retran to 1.
-        } else if(nrf_has_max_rt_intr()) {
-            // have to flush and clear the rt interrupt.
-            nrf_dump("Max Interrupt");
-            nrf_tx_flush();
-            nrf_tx_intr_clr();
-            nrf_rt_intr_clr();
-            nrf_rx_mode(n);
-            panic("max intr\n");
-            printk("max rt intr!\n");
+        if (pin_sum != 0) {
+            r_but = r_but | get_button_val(r_pin);
+            g_but = g_but | get_button_val(g_pin);
+            b_but = b_but | get_button_val(b_pin);
+            o_but = o_but | get_button_val(o_pin);
         }
-
-        // XXX: if we transition to RX, do we lose all the TX setup?
-        if(nrf_rx_fifo_full())
-            panic("rx fifo is full!\n");
+        if (check_interrupt(n)) break;
     }
 
     nrf_rx_mode(n);
     //nrf_dump("back in rx");
-    return nbytes;
+    return package_buttons(r_but, g_but, b_but, o_but);
 }
 

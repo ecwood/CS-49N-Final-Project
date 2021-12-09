@@ -234,7 +234,7 @@ extern unsigned nrf_verbose_p;
 nrf_t  
 nrf_init(const nrf_config_t c, uint32_t rx_addr, unsigned msg_nbytes, unsigned acked_p);
 int nrf_get_pkts(nrf_t *n);
-int nrf_tx_send_ack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbytes);
+uint16_t nrf_tx_send_ack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbytes, unsigned red_pin, unsigned green_pin, unsigned blue_pin, unsigned on_off_pin);
 
 int nrf_tx_send_noack(nrf_t *n, uint32_t txaddr, const void *msg, unsigned nbytes) ;
 

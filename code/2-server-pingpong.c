@@ -30,7 +30,6 @@ void notmain(void) {
             panic("impossible\n");
         printk("server: received %d (expected=%d)\n", x,i);
         assert(x == i);
-        delay_ms(DELAY_MS);
     }
     nrf_dump("server end");
     printk("server: done!\n");

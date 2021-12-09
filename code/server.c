@@ -5,6 +5,7 @@
 #include "button.h"
 #include "ads1115_joystick.h"
 #include "package_data.h"
+#include "color.h"
 
 void notmain(void) {
     int on_off_pin = 4;
@@ -27,16 +28,17 @@ void notmain(void) {
     button_initialize(blue_pin);
     button_initialize(green_pin);
 
+    uint32_t pack = package_buttons(0, 0, 0, 0) | 0;
+    unsigned next_on_off = 0;
+    uint16_t x;
+
     Color col = make_color(100, 100, 100);
 
+
     while (1) {
-        uint8_t joy = ((get_joystick_sample(dev_addr) + 100) / 2);
-        unsigned on_off_val = get_button_val(on_off_pin);
-        uint32_t send = package(&col, get_button_val(red_pin), get_button_val(green_pin), get_button_val(blue_pin), on_off_val, joy);
-        //printk("server: sent joy=%d, red=%d, green=%d, blue=%d\n", joy, col.red, col.green, col.blue);
-        if(nrf_send_ack(client_addr, &send, 4) != 4)
-            panic("send failed\n");
-        if (on_off_val) break;
+        pack = package(&col, nrf_send_ack(client_addr, &pack, 4, red_pin, green_pin, blue_pin, on_off_pin), ((get_joystick_sample(dev_addr) + 100) / 2));
+        if (next_on_off) break;
+        next_on_off = pack >> 30;
     }
     nrf_dump("server end");
     printk("server: done!\n");
